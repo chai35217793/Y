@@ -1,17 +1,13 @@
-[
-    {
-        "domain": ".youtube.com",
-        "expirationDate": 1761130685.910101,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "__Secure-1PAPISID",
-        "path": "/",
-        "sameSite": "unspecified",
-        "secure": true,
-        "session": false,
-        "storeId": "0",
-        "value": "VJeLliPl0RLS2hhg/AbDXKsmGjiDkaY-aC",
-        "id": 1
-    },
-    ...
-]
+{
+    "cookies": [
+        {
+            "domain": ".example.com",
+            "expiration": 1680000000,
+            "httpOnly": true,
+            "name": "session_id",
+            "path": "/",
+            "secure": true,
+            "value": "your_session_value"
+        }
+    ]
+}
