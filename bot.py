@@ -1,53 +1,62 @@
-import logging
-import os
 import json
-from pytube import YouTube
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import yt_dlp
 
-# Configure logging
+# Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Your API credentials
-API_ID = 22420997
-API_HASH = 'd7fbe2036e9ed2a1468fad5a5584a255'
-BOT_TOKEN = '7410410018:AAEM-Rbf9b6SVS3PsYcm1fNkkISTas2Fch0'
-
-# Load cookies
+# Load cookies from the file
 def load_cookies(filename):
     with open(filename, 'r') as f:
         cookies = json.load(f)
     return cookies
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Welcome! Send me a YouTube video URL to download.')
+# Download video from a YouTube URL
+async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = context.args[0]  # Get URL from command arguments
+    if not url:
+        await update.message.reply_text("Please provide a YouTube URL.")
+        return
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Send a YouTube video URL to download it.')
+    # Set up yt-dlp options
+    ydl_opts = {
+        'format': 'best',
+        'cookiefile': 'cookies.txt',  # Path to your cookies file
+        'outtmpl': '%(title)s.%(ext)s',  # File naming
+    }
 
-async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    url = update.message.text
-    try:
-        yt = YouTube(url)
-        video = yt.streams.get_highest_resolution()
-        video_file = video.download()  # Download the video
-        await context.bot.send_video(chat_id=update.effective_chat.id, video=open(video_file, 'rb'))
-        os.remove(video_file)  # Clean up the file after sending
-    except Exception as e:
-        await update.message.reply_text(f'Error: {str(e)}')
+    async with context.bot.chat_data as data:
+        try:
+            await update.message.reply_text("Downloading video...")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            await update.message.reply_text("Download completed.")
+        except Exception as e:
+            logger.error(f"Error downloading video: {e}")
+            await update.message.reply_text("An error occurred while downloading the video.")
 
-def main() -> None:
-    # Load cookies if necessary
-    cookies = load_cookies('cookies.txt')  # Adjust the path as needed
+# Start command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Welcome! Send a YouTube video URL to download it.")
+
+# Main function to run the bot
+if __name__ == '__main__':
+    # Load your API ID, API Hash, and Bot Token
+    API_ID = '22420997'  # Replace with your API ID
+    API_HASH = 'd7fbe2036e9ed2a1468fad5a5584a255'  # Replace with your API Hash
+    BOT_TOKEN = '7410410018:AAEM-Rbf9b6SVS3PsYcm1fNkkISTas2Fch0'  # Replace with your Bot Token
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     
+    # Register handlers
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_video))
-    
-    application.run_polling()
 
-if __name__ == '__main__':
-    main()
+    # Load cookies (optional, if needed)
+    cookies = load_cookies('cookies.txt')
+
+    # Run the bot
+    application.run_polling()
